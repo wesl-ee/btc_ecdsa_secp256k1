@@ -51,9 +51,10 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
         if step > 1 {
             p_1, underflow := new(uint256.Int).SubOverflow(
                 p[0],
-                new(uint256.Int).Mul(
+                new(uint256.Int).MulMod(
                     p[1],
-                    q[0]))
+                    q[0],
+                    modulus))
 
             if (underflow) {
                 p_1.Add(p_1, modulus)
@@ -76,9 +77,10 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
                 /* Compute the last step of the algorithm */
                 p_1, underflow := new(uint256.Int).SubOverflow(
                     p[0],
-                    new(uint256.Int).Mul(
+                    new(uint256.Int).MulMod(
                         p[1],
-                        q[0]))
+                        q[0],
+                        modulus))
 
                 if (underflow) {
                     p_1.Add(p_1, modulus)
