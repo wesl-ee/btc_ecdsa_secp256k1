@@ -39,7 +39,7 @@ func mod_inverse_euclid(operand, modulus uint64) (uint64) {
      */
     q := [2]uint64{}
 
-    for step := 0; ; step++ {
+    for {
         quotient, remainder := a[0] / a[1], a[0] % a[1]
 
         /* Compute the auxillary p */
@@ -57,9 +57,11 @@ func mod_inverse_euclid(operand, modulus uint64) (uint64) {
 
         if remainder == 0 {
             if a[0] == 1 {
+                /* Compute the last step of the algorithm */
                 return (p[0] - p[1] * q[0]) % modulus
             }
 
+            /* Coprime case */
             break
         }
 
