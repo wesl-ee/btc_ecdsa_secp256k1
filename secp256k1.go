@@ -4,6 +4,16 @@ import (
     "github.com/holiman/uint256"
 )
 
+type ECPoint struct {
+    X *uint256.Int
+    Y *uint256.Int
+}
+
+/**
+ * 115792089237316195423570985008687907853269984665640564039457584007908834671663
+ */
+var SECP256K1_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F")
+
 /**
  * Find `inverse` s.t. `operand` * `inverse` ≡ 1 (mod `modulus`) using the
  * brute-force method
@@ -96,4 +106,62 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
     }
 
     return nil
+}
+
+func secp256k1_double(p ECPoint) ECPoint {
+    modulus := SECP256K1_ORDER
+
+    inv_2_py := mod_inverse_euclid(
+            new(uint256.Int).MulMod(
+                uint256.NewInt(2),
+                p.Y,
+                modulus),
+            modulus)
+    px_square := new(uint256.Int).MulMod(p.X, p.X, modulus)
+
+    /* slope = (3 * x + a) / (2 * y) */
+    slope := new(uint256.Int).MulMod(
+        new(uint256.Int).MulMod(
+            uint256.NewInt(3),
+            px_square,
+            modulus),
+        inv_2_py,
+        modulus)
+
+    px_2 := new(uint256.Int).MulMod(uint256.NewInt(2), p.X, modulus)
+    x, underflow := new(uint256.Int).SubOverflow(
+            new(uint256.Int).MulMod(slope, slope, modulus),
+            px_2)
+    if underflow { x.Add(x, modulus) }
+
+    px_minus_x, underflow := new(uint256.Int).SubOverflow(p.X, x)
+    if underflow { px_minus_x.Add(px_minus_x, modulus) }
+
+    y, underflow := new(uint256.Int).SubOverflow(
+        new(uint256.Int).MulMod(slope, px_minus_x, modulus),
+        p.Y)
+    if underflow { y.Add(y, modulus) }
+
+    return ECPoint {
+        X: x,
+        Y: y,
+    }
+}
+
+func secp256k1_on_curve(p ECPoint) bool {
+    x_cube := new(uint256.Int).MulMod(
+        new(uint256.Int).MulMod(
+            p.X,
+            p.X,
+            SECP256K1_ORDER),
+        p.X,
+        SECP256K1_ORDER)
+    y_square := new(uint256.Int).MulMod(p.Y, p.Y, SECP256K1_ORDER)
+
+    res, underflow := new(uint256.Int).SubOverflow(new(uint256.Int).Add(x_cube, uint256.NewInt(7)),
+        y_square)
+    if underflow { res.Add(res, SECP256K1_ORDER) }
+
+    res.Mod(res, SECP256K1_ORDER)
+    return res.IsZero()
 }
