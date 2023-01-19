@@ -7,7 +7,7 @@ import (
 
 func TestModuloNaive(t *testing.T) {
     /* 3 * 5 ≡ 1 (mod 7) */
-    if mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Cmp(uint256.NewInt(7)) != 0 {
+    if !mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 
@@ -17,14 +17,14 @@ func TestModuloNaive(t *testing.T) {
     }
 
     /* 15 * 7 ≡ 1 (mod 26) */
-    if mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Cmp(uint256.NewInt(7)) != 0 {
+    if !mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 }
 
 func TestModuloEuclid(t *testing.T) {
     /* 3 * 5 ≡ 1 (mod 7) */
-    if mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Cmp(uint256.NewInt(7)) != 0 {
+    if !mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 
@@ -34,7 +34,7 @@ func TestModuloEuclid(t *testing.T) {
     }
 
     /* 15 * 7 ≡ 1 (mod 26) */
-    if mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Cmp(uint256.NewInt(7)) != 0 {
+    if !mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 }
@@ -170,7 +170,7 @@ func TestSecp256k1Multiply(t *testing.T) {
      * (x, y) multiplied by 1 is itself
      */
     res := secp256k1_multiply(uint256.NewInt(1), generator_point)
-    if res.X.Cmp(generator_point.X) != 0 || res.Y.Cmp(generator_point.Y) != 0 {
+    if !res.X.Eq(generator_point.X) || !res.Y.Eq(generator_point.Y) {
         t.Fail()
     }
 
@@ -179,8 +179,7 @@ func TestSecp256k1Multiply(t *testing.T) {
      */
     res = secp256k1_multiply(uint256.NewInt(2), generator_point)
     doubled := secp256k1_double(generator_point)
-    if res.X.Cmp(doubled.X) != 0 ||
-    res.Y.Cmp(doubled.Y) != 0 {
+    if !res.X.Eq(doubled.X) || !res.Y.Eq(doubled.Y) {
         t.Fail()
     }
 

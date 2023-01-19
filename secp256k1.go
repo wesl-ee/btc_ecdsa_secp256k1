@@ -37,7 +37,7 @@ var SECP256K1_GENERATOR_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFF
 func mod_inverse_naive(operand, modulus *uint256.Int) (*uint256.Int) {
     for i := uint256.NewInt(0); i.Cmp(modulus) < 0; i.Add(i, uint256.NewInt(1)) {
         mulmod := new(uint256.Int).MulMod(i, operand, modulus)
-        if mulmod.Cmp(uint256.NewInt(1)) == 0 {
+        if mulmod.Eq(uint256.NewInt(1)) {
             return i
         }
     }
@@ -99,7 +99,7 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
         q[1] = quotient
 
         if remainder.IsZero() {
-            if a[0].Cmp(uint256.NewInt(1)) == 0 {
+            if a[0].Eq(uint256.NewInt(1)) {
                 /* Compute the last step of the algorithm */
                 p_1, underflow := new(uint256.Int).SubOverflow(
                     p[0],
@@ -173,7 +173,7 @@ func secp256k1_double(p ECPoint) ECPoint {
 func secp256k1_add(p_1, p_2 ECPoint) ECPoint {
     modulus := SECP256K1_ORDER
 
-    if p_1.X.Cmp(p_2.X) == 0 && p_1.Y.Cmp(p_2.Y) == 0 {
+    if p_1.X.Eq(p_2.X) && p_1.Y.Eq(p_2.Y) {
         return secp256k1_double(p_1)
     }
 
