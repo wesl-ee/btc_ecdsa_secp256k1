@@ -108,6 +108,9 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
     return nil
 }
 
+/**
+ * Double a point on secp256k1
+ */
 func secp256k1_double(p ECPoint) ECPoint {
     modulus := SECP256K1_ORDER
 
@@ -148,6 +151,55 @@ func secp256k1_double(p ECPoint) ECPoint {
     }
 }
 
+/**
+ * Add two points on secp256k1
+ */
+func secp256k1_add(p_1, p_2 ECPoint) ECPoint {
+    modulus := SECP256K1_ORDER
+
+    if p_1.X.Cmp(p_2.X) == 0 && p_1.Y.Cmp(p_2.Y) == 0 {
+        return secp256k1_double(p_1)
+    }
+
+    /* slope = (y_1 - y_2) / (x_1 - x_2) */
+    x1_minus_x2, underflow := new(uint256.Int).SubOverflow(
+        p_1.X, p_2.X)
+    if underflow { x1_minus_x2.Add(x1_minus_x2, modulus) }
+    inv_x1_minus_x2 := mod_inverse_euclid(
+            x1_minus_x2, modulus)
+
+    y1_minus_y2, underflow := new(uint256.Int).SubOverflow(
+        p_1.Y, p_2.Y)
+    if underflow { y1_minus_y2.Add(y1_minus_y2, modulus) }
+    slope := new(uint256.Int).MulMod(y1_minus_y2, inv_x1_minus_x2, modulus)
+
+    /* x = slope ** 2 - x_1 - x_2 */
+    x, underflow := new(uint256.Int).SubOverflow(
+            new(uint256.Int).MulMod(slope, slope, modulus),
+        p_1.X)
+    if underflow { x.Add(x, modulus) }
+    x, underflow = new(uint256.Int).SubOverflow(
+            x,
+        p_2.X)
+    if underflow { x.Add(x, modulus) }
+
+    /* x = slope * (x_1 - x) - y_1 */
+    x1_minus_x, underflow := new(uint256.Int).SubOverflow(p_1.X, x)
+    if underflow { x1_minus_x.Add(x1_minus_x, modulus) }
+    slope_mul_x1_minus_x := new(uint256.Int).MulMod(
+        slope, x1_minus_x, modulus)
+    y, underflow := new(uint256.Int).SubOverflow(
+        slope_mul_x1_minus_x, p_1.Y)
+    if underflow { y.Add(y, modulus) }
+
+    return ECPoint {
+        X: x,
+        Y: y,
+    }
+}
+/**
+ * Check if this point is actually on secp256k1
+ */
 func secp256k1_on_curve(p ECPoint) bool {
     x_cube := new(uint256.Int).MulMod(
         new(uint256.Int).MulMod(
