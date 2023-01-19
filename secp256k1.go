@@ -15,6 +15,12 @@ type ECPoint struct {
 var SECP256K1_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F")
 
 /**
+ * Recommended generator point, G
+ */
+var SECP256K1_GENERATOR_X, _ = uint256.FromHex("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
+var SECP256K1_GENERATOR_Y, _ = uint256.FromHex("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8")
+
+/**
  * Find `inverse` s.t. `operand` * `inverse` ≡ 1 (mod `modulus`) using the
  * brute-force method
  */
@@ -197,6 +203,55 @@ func secp256k1_add(p_1, p_2 ECPoint) ECPoint {
         Y: y,
     }
 }
+
+/**
+ * Multiple two points using the double + add algorithm
+ *
+ * NOTE This is much faster than simply adding the point `operand` times
+ */
+func secp256k1_multiply(operand *uint256.Int, p ECPoint) ECPoint {
+    running := ECPoint {
+        X: p.X.Clone(),
+        Y: p.Y.Clone(),
+    }
+
+    bytes := operand.Bytes()
+    skip := true
+    /* Loop over bytes in this uint256 */
+    for i_b := 0; i_b < len(bytes); i_b++ {
+        b := bytes[i_b]
+
+        for i := 7; i >= 0; i-- {
+            /* Extract bit at position `i` */
+            bit := b & (1 << i)
+
+            if skip && i_b == 0 {
+                /* Skip zero padding on MSB */
+                if bit == 0 {
+                    continue
+                }
+
+                /* Skip only the first bit in the MSB */
+                var mask byte = ^((1 << i) - 1)
+                if ((mask & b) >> i == 1) {
+                    skip = false
+                    continue
+                }
+            }
+
+            /* Always double (after ignoring the first bit) */
+            running = secp256k1_double(running)
+
+            if bit > 0 {
+                /* Add if this bit is a `1` (again, ignoring the first bit) */
+                running = secp256k1_add(running, p)
+            }
+        }
+    }
+
+    return running
+}
+
 /**
  * Check if this point is actually on secp256k1
  */
@@ -217,3 +272,4 @@ func secp256k1_on_curve(p ECPoint) bool {
     res.Mod(res, SECP256K1_ORDER)
     return res.IsZero()
 }
+
