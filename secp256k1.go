@@ -4,6 +4,11 @@ import (
     "github.com/holiman/uint256"
 )
 
+type ECDSignature struct {
+    R *uint256.Int
+    S *uint256.Int
+}
+
 type ECPoint struct {
     X *uint256.Int
     Y *uint256.Int
@@ -19,6 +24,11 @@ var SECP256K1_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
  */
 var SECP256K1_GENERATOR_X, _ = uint256.FromHex("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
 var SECP256K1_GENERATOR_Y, _ = uint256.FromHex("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8")
+var SECP256K1_GENERATOR = ECPoint {
+    X: SECP256K1_GENERATOR_X,
+    Y: SECP256K1_GENERATOR_Y,
+}
+var SECP256K1_GENERATOR_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
 
 /**
  * Find `inverse` s.t. `operand` * `inverse` ≡ 1 (mod `modulus`) using the
@@ -250,6 +260,41 @@ func secp256k1_multiply(operand *uint256.Int, p ECPoint) ECPoint {
     }
 
     return running
+}
+
+func secp256k1_verify(pub ECPoint, hash *uint256.Int, signature ECDSignature) bool {
+    p_1 := secp256k1_multiply(
+        new(uint256.Int).MulMod(
+            mod_inverse_euclid(signature.S, SECP256K1_GENERATOR_ORDER),
+            hash,
+            SECP256K1_GENERATOR_ORDER),
+        SECP256K1_GENERATOR)
+
+    p_2 := secp256k1_multiply(
+        new(uint256.Int).MulMod(
+            mod_inverse_euclid(signature.S, SECP256K1_GENERATOR_ORDER),
+            signature.R,
+            SECP256K1_GENERATOR_ORDER),
+        pub)
+
+    res := secp256k1_add(p_1, p_2)
+    return res.X.Eq(signature.R)
+}
+
+func secp256k1_sign(priv, hash, nonce *uint256.Int) ECDSignature {
+    r := (secp256k1_multiply(nonce, SECP256K1_GENERATOR)).X
+    s := new(uint256.Int).MulMod(
+        new(uint256.Int).AddMod(
+            new(uint256.Int).MulMod(priv, r, SECP256K1_GENERATOR_ORDER),
+            hash,
+            SECP256K1_GENERATOR_ORDER),
+        mod_inverse_euclid(nonce, SECP256K1_GENERATOR_ORDER),
+        SECP256K1_GENERATOR_ORDER)
+
+    return ECDSignature {
+        R: r,
+        S: s,
+    }
 }
 
 /**

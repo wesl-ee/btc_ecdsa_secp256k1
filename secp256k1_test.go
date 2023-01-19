@@ -215,3 +215,69 @@ func TestSecp256k1Multiply(t *testing.T) {
         t.Fail()
     }
 }
+
+func TestSecp256k1Sign(t *testing.T) {
+    priv, _ := uint256.FromHex("0xF94A840F1E1A901843A75DD07FFCC5C84478DC4F987797474C9393AC53AB55E6")
+    /* SHA256("") */
+    msg, _ := uint256.FromHex("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+    nonce, _ := uint256.FromHex("0x3039")
+
+    signature := secp256k1_sign(priv, msg, nonce)
+
+    if signature.R.Hex() != "0xf01d6b9018ab421dd410404cb869072065522bf85734008f105cf385a023a80f" ||
+    signature.S.Hex() != "0x2ffcf4d44cd63a242027bb36287f954f052d73564c3ce5e0191c890166d1afc2" {
+        t.Fail()
+    }
+}
+
+func TestSecp256k1Verify(t *testing.T) {
+    /* SHA256("") */
+    msg, _ := uint256.FromHex("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+
+    /* (r, s) signature from TestSecp256k1Sign */
+    r, _ := uint256.FromHex("0xf01d6b9018ab421dd410404cb869072065522bf85734008f105cf385a023a80f")
+    s, _ := uint256.FromHex("0x2ffcf4d44cd63a242027bb36287f954f052d73564c3ce5e0191c890166d1afc2")
+    sig := ECDSignature {
+        R: r,
+        S: s,
+    }
+
+    /* Public key */
+    pub_x, _ := uint256.FromHex("0x4AEAF55040FA16DE37303D13CA1DDE85F4CA9BAA36E2963A27A1C0C1165FE2B1")
+    pub_y, _ := uint256.FromHex("0x1511A626B232DE4ED05B204BD9ECCAF1B79F5752E14DD1E847AA2F4DB6A52768")
+    pub := ECPoint {
+        X: pub_x,
+        Y: pub_y,
+    }
+
+    /* Signature is valid */
+    if !secp256k1_verify(pub, msg, sig) {
+        t.Fail()
+    }
+}
+
+func TestSecp256k1NegVerify(t *testing.T) {
+    /* SHA256("") */
+    msg, _ := uint256.FromHex("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+
+    /* (r, s) produced from the wrong private key */
+    r, _ := uint256.FromHex("0xf01d6b9018ab421dd410404cb869072065522bf85734008f105cf385a023a80f")
+    s, _ := uint256.FromHex("0x9d0b1f4974b76255c5d21695a8b088090dbc4e2e8b89bf43870eca23a1e16fa3")
+    sig := ECDSignature {
+        R: r,
+        S: s,
+    }
+
+    /* Public key */
+    x, _ := uint256.FromHex("0x4AEAF55040FA16DE37303D13CA1DDE85F4CA9BAA36E2963A27A1C0C1165FE2B1")
+    y, _ := uint256.FromHex("0x1511A626B232DE4ED05B204BD9ECCAF1B79F5752E14DD1E847AA2F4DB6A52768")
+    pub := ECPoint {
+        X: x,
+        Y: y,
+    }
+
+    /* Signature is invalid */
+    if secp256k1_verify(pub, msg, sig) {
+        t.Fail()
+    }
+}
