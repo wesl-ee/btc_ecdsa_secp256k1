@@ -7,34 +7,34 @@ import (
 
 func TestModuloNaive(t *testing.T) {
     // 3 * 5 ≡ 1 (mod 7)
-    if !mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
+    if !modInverseNaive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 
     // 2 has no inverse modulo 6
-    if mod_inverse_naive(uint256.NewInt(2), uint256.NewInt(6)) != nil {
+    if modInverseNaive(uint256.NewInt(2), uint256.NewInt(6)) != nil {
         t.Fail()
     }
 
     // 15 * 7 ≡ 1 (mod 26)
-    if !mod_inverse_naive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
+    if !modInverseNaive(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 }
 
 func TestModuloEuclid(t *testing.T) {
     // 3 * 5 ≡ 1 (mod 7)
-    if !mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
+    if !modInverseEuclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 
     // 2 has no inverse modulo 6
-    if mod_inverse_euclid(uint256.NewInt(2), uint256.NewInt(6)) != nil {
+    if modInverseEuclid(uint256.NewInt(2), uint256.NewInt(6)) != nil {
         t.Fail()
     }
 
     // 15 * 7 ≡ 1 (mod 26)
-    if !mod_inverse_euclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
+    if !modInverseEuclid(uint256.NewInt(15), uint256.NewInt(26)).Eq(uint256.NewInt(7)) {
         t.Fail()
     }
 }
@@ -56,19 +56,19 @@ func TestSecp256k1Double(t *testing.T) {
     //
     // Demonstrate that the initial point is on the curve
     //
-    if !secp256k1_on_curve(point_1) {
+    if !secp256k1OnCurve(point_1) {
         t.Fail()
     }
 
     //
     // Double the point with itself
     //
-    point_2 := secp256k1_double(point_1)
+    point_2 := secp256k1Double(point_1)
 
     //
     // Verify that the doubled point is also on the curve
     //
-    if !secp256k1_on_curve(point_2) {
+    if !secp256k1OnCurve(point_2) {
         t.Fail()
     }
 
@@ -102,7 +102,7 @@ func TestSecp256k1Add(t *testing.T) {
     //
     // Demonstrate that the initial point is on the curve
     //
-    if !secp256k1_on_curve(point_1) {
+    if !secp256k1OnCurve(point_1) {
         t.Fail()
     }
 
@@ -122,16 +122,16 @@ func TestSecp256k1Add(t *testing.T) {
     //
     // Demonstrate that point_2 is on the curve
     //
-    if !secp256k1_on_curve(point_2) {
+    if !secp256k1OnCurve(point_2) {
         t.Fail()
     }
 
-    point_add_result := secp256k1_add(point_1, point_2)
+    point_add_result := secp256k1Add(point_1, point_2)
 
     //
     // Verify that the resultant point is also on the curve
     //
-    if !secp256k1_on_curve(point_add_result) {
+    if !secp256k1OnCurve(point_add_result) {
         t.Fail()
     }
 
@@ -154,22 +154,19 @@ func TestSecp256k1Multiply(t *testing.T) {
     // 115792089237316195423570985008687907853269984665640564039457584007908834671663,
     // 55066263022277343669578718895168534326250603453777594175500187360389116729240
     //
-    generator_point := ECPoint {
-        X: SECP256K1_GENERATOR_X,
-        Y: SECP256K1_GENERATOR_Y,
-    }
+    generator_point := secp256k1Generator
 
     //
     // Demonstrate that the initial point is on the curve
     //
-    if !secp256k1_on_curve(generator_point) {
+    if !secp256k1OnCurve(generator_point) {
         t.Fail()
     }
 
     //
     // (x, y) multiplied by 1 is itself
     //
-    res := secp256k1_multiply(uint256.NewInt(1), generator_point)
+    res := secp256k1Multiply(uint256.NewInt(1), generator_point)
     if !res.X.Eq(generator_point.X) || !res.Y.Eq(generator_point.Y) {
         t.Fail()
     }
@@ -177,13 +174,13 @@ func TestSecp256k1Multiply(t *testing.T) {
     //
     // (x, y) multiplied by 2 is that point doubled
     //
-    res = secp256k1_multiply(uint256.NewInt(2), generator_point)
-    doubled := secp256k1_double(generator_point)
+    res = secp256k1Multiply(uint256.NewInt(2), generator_point)
+    doubled := secp256k1Double(generator_point)
     if !res.X.Eq(doubled.X) || !res.Y.Eq(doubled.Y) {
         t.Fail()
     }
 
-    res = secp256k1_multiply(uint256.NewInt(3), generator_point)
+    res = secp256k1Multiply(uint256.NewInt(3), generator_point)
     if res.X.Hex() != "0xf9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9" ||
     res.Y.Hex() != "0x388f7b0f632de8140fe337e62a37f3566500a99934c2231b6cb9fd7584b8e672" {
         t.Fail()
@@ -195,8 +192,8 @@ func TestSecp256k1Multiply(t *testing.T) {
     //
     // https://chuckbatson.wordpress.com/2014/11/26/secp256k1-test-vectors/
     //
-    priv_key, _ := uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364132")
-    res = secp256k1_multiply(priv_key, generator_point)
+    privKey, _ := uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364132")
+    res = secp256k1Multiply(privKey, generator_point)
     if res.X.Hex() != "0xd7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e" ||
     res.Y.Hex() != "0xa7e1d78d57938d597c7bd13dd733921015bf50d427692c5a3afb235f095d90d7" {
         t.Fail()
@@ -207,8 +204,8 @@ func TestSecp256k1Multiply(t *testing.T) {
     //
     // https://chuckbatson.wordpress.com/2014/11/26/secp256k1-test-vectors/
     //
-    priv_key, _ = uint256.FromHex("0x18EBBB95EED0E13")
-    res = secp256k1_multiply(priv_key, generator_point)
+    privKey, _ = uint256.FromHex("0x18EBBB95EED0E13")
+    res = secp256k1Multiply(privKey, generator_point)
     if res.X.Hex() != "0xa90cc3d3f3e146daadfc74ca1372207cb4b725ae708cef713a98edd73d99ef29" ||
     res.Y.Hex() != "0x5a79d6b289610c68bc3b47f3d72f9788a26a06868b4d8e433e1e2ad76fb7dc76" {
         t.Fail()
@@ -221,7 +218,7 @@ func TestSecp256k1Sign(t *testing.T) {
     msg, _ := uint256.FromHex("0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
     nonce, _ := uint256.FromHex("0x3039")
 
-    signature := secp256k1_sign(priv, msg, nonce)
+    signature := secp256k1Sign(priv, msg, nonce)
 
     if signature.R.Hex() != "0xf01d6b9018ab421dd410404cb869072065522bf85734008f105cf385a023a80f" ||
     signature.S.Hex() != "0x2ffcf4d44cd63a242027bb36287f954f052d73564c3ce5e0191c890166d1afc2" {
@@ -250,7 +247,7 @@ func TestSecp256k1Verify(t *testing.T) {
     }
 
     // Signature is valid
-    if !secp256k1_verify(pub, msg, sig) {
+    if !secp256k1Verify(pub, msg, sig) {
         t.Fail()
     }
 }
@@ -276,7 +273,7 @@ func TestSecp256k1NegVerify(t *testing.T) {
     }
 
     // Signature is invalid
-    if secp256k1_verify(pub, msg, sig) {
+    if secp256k1Verify(pub, msg, sig) {
         t.Fail()
     }
 }

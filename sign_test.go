@@ -31,18 +31,18 @@ func TestSignVerifyNegative(t *testing.T) {
     priv, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
     pub := DerivePubKey(priv)
 
-    actual_msg := []byte("Let's meet for lunch today")
-    forged_msg := []byte("Let's meet for lunch tomorrow")
+    actualMsg := []byte("Let's meet for lunch today")
+    forgedMsg := []byte("Let's meet for lunch tomorrow")
 
-    actual_signature := Sign(priv, actual_msg, 54321)
+    actualSignature := Sign(priv, actualMsg, 54321)
 
     // Demonstrate that the signature does not validatre a forged message
-    if Verify(pub, forged_msg, actual_signature) {
+    if Verify(pub, forgedMsg, actualSignature) {
         t.Fail()
     }
 
     // The signature *does* validate the message we signed, as expected
-    if !Verify(pub, actual_msg, actual_signature) {
+    if !Verify(pub, actualMsg, actualSignature) {
         t.Fail()
     }
 }

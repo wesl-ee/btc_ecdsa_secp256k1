@@ -15,20 +15,20 @@ type ECPoint struct {
 }
 
 // 115792089237316195423570985008687907853269984665640564039457584007908834671663
-var SECP256K1_PRIME, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F")
+var secp256k1Prime, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F")
 
 // Recommended generator point, G
-var SECP256K1_GENERATOR_X, _ = uint256.FromHex("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
-var SECP256K1_GENERATOR_Y, _ = uint256.FromHex("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8")
-var SECP256K1_GENERATOR = ECPoint {
-    X: SECP256K1_GENERATOR_X,
-    Y: SECP256K1_GENERATOR_Y,
+var secp256k1GeneratorX, _ = uint256.FromHex("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
+var secp256k1GeneratorY, _ = uint256.FromHex("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8")
+var secp256k1Generator = ECPoint {
+    X: secp256k1GeneratorX,
+    Y: secp256k1GeneratorY,
 }
-var SECP256K1_ORDER, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
+var secp256k1Order, _ = uint256.FromHex("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
 
 // Find `inverse` s.t. `operand` * `inverse` ≡ 1 (mod `modulus`) using the
 // brute-force method
-func mod_inverse_naive(operand, modulus *uint256.Int) (*uint256.Int) {
+func modInverseNaive(operand, modulus *uint256.Int) (*uint256.Int) {
     for i := uint256.NewInt(0); i.Cmp(modulus) < 0; i.Add(i, uint256.NewInt(1)) {
         mulmod := new(uint256.Int).MulMod(i, operand, modulus)
         if mulmod.Eq(uint256.NewInt(1)) {
@@ -41,7 +41,7 @@ func mod_inverse_naive(operand, modulus *uint256.Int) (*uint256.Int) {
 
 // Find `inverse` s.t. `operand` * `inverse` ≡ 1 (mod `modulus`) using the
 // extended Euclidean algorithm
-func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
+func modInverseEuclid(operand, modulus *uint256.Int) (*uint256.Int) {
     //
     // When doing the algorithm by hand this is the left-hand side:
     //
@@ -52,7 +52,7 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
     //
     // Auxillary number p_i
     //
-    // The algorithm defines the first two p as p_0 = 0 and p_1 = 1
+    // The algorithm defines the first two p as p_0 = 0 and p1 = 1
     //
     p := [2]*uint256.Int{uint256.NewInt(0), uint256.NewInt(1)}
 
@@ -67,7 +67,7 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
 
         // Compute the auxillary p 
         if step > 1 {
-            p_1, underflow := new(uint256.Int).SubOverflow(
+            p1, underflow := new(uint256.Int).SubOverflow(
                 p[0],
                 new(uint256.Int).MulMod(
                     p[1],
@@ -75,11 +75,11 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
                     modulus))
 
             if (underflow) {
-                p_1.Add(p_1, modulus)
+                p1.Add(p1, modulus)
             }
 
             p[0] = p[1]
-            p[1] = p_1
+            p[1] = p1
         }
 
         // a << 1 + append remainder
@@ -93,7 +93,7 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
         if remainder.IsZero() {
             if a[0].Eq(uint256.NewInt(1)) {
                 // Compute the last step of the algorithm
-                p_1, underflow := new(uint256.Int).SubOverflow(
+                p1, underflow := new(uint256.Int).SubOverflow(
                     p[0],
                     new(uint256.Int).MulMod(
                         p[1],
@@ -101,10 +101,10 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
                         modulus))
 
                 if (underflow) {
-                    p_1.Add(p_1, modulus)
+                    p1.Add(p1, modulus)
                 }
 
-                return p_1
+                return p1
             }
 
             // Coprime case
@@ -119,10 +119,10 @@ func mod_inverse_euclid(operand, modulus *uint256.Int) (*uint256.Int) {
 //
 // Double a point on secp256k1
 //
-func secp256k1_double(p ECPoint) ECPoint {
-    modulus := SECP256K1_PRIME
+func secp256k1Double(p ECPoint) ECPoint {
+    modulus := secp256k1Prime
 
-    inv_2_py := mod_inverse_euclid(
+    inv2Py := modInverseEuclid(
             new(uint256.Int).MulMod(
                 uint256.NewInt(2),
                 p.Y,
@@ -136,20 +136,20 @@ func secp256k1_double(p ECPoint) ECPoint {
             uint256.NewInt(3),
             px_square,
             modulus),
-        inv_2_py,
+        inv2Py,
         modulus)
 
-    px_2 := new(uint256.Int).MulMod(uint256.NewInt(2), p.X, modulus)
+    px2 := new(uint256.Int).MulMod(uint256.NewInt(2), p.X, modulus)
     x, underflow := new(uint256.Int).SubOverflow(
             new(uint256.Int).MulMod(slope, slope, modulus),
-            px_2)
+            px2)
     if underflow { x.Add(x, modulus) }
 
-    px_minus_x, underflow := new(uint256.Int).SubOverflow(p.X, x)
-    if underflow { px_minus_x.Add(px_minus_x, modulus) }
+    pxMinusX, underflow := new(uint256.Int).SubOverflow(p.X, x)
+    if underflow { pxMinusX.Add(pxMinusX, modulus) }
 
     y, underflow := new(uint256.Int).SubOverflow(
-        new(uint256.Int).MulMod(slope, px_minus_x, modulus),
+        new(uint256.Int).MulMod(slope, pxMinusX, modulus),
         p.Y)
     if underflow { y.Add(y, modulus) }
 
@@ -162,42 +162,42 @@ func secp256k1_double(p ECPoint) ECPoint {
 //
 // Add two points on secp256k1
 //
-func secp256k1_add(p_1, p_2 ECPoint) ECPoint {
-    modulus := SECP256K1_PRIME
+func secp256k1Add(p1, p2 ECPoint) ECPoint {
+    modulus := secp256k1Prime
 
-    if p_1.X.Eq(p_2.X) && p_1.Y.Eq(p_2.Y) {
-        return secp256k1_double(p_1)
+    if p1.X.Eq(p2.X) && p1.Y.Eq(p2.Y) {
+        return secp256k1Double(p1)
     }
 
     // slope = (y_1 - y_2) / (x_1 - x_2)
-    x1_minus_x2, underflow := new(uint256.Int).SubOverflow(
-        p_1.X, p_2.X)
-    if underflow { x1_minus_x2.Add(x1_minus_x2, modulus) }
-    inv_x1_minus_x2 := mod_inverse_euclid(
-            x1_minus_x2, modulus)
+    x1MinusX2, underflow := new(uint256.Int).SubOverflow(
+        p1.X, p2.X)
+    if underflow { x1MinusX2.Add(x1MinusX2, modulus) }
+    inv_x1MinusX2 := modInverseEuclid(
+            x1MinusX2, modulus)
 
-    y1_minus_y2, underflow := new(uint256.Int).SubOverflow(
-        p_1.Y, p_2.Y)
-    if underflow { y1_minus_y2.Add(y1_minus_y2, modulus) }
-    slope := new(uint256.Int).MulMod(y1_minus_y2, inv_x1_minus_x2, modulus)
+    p1MinusY2, underflow := new(uint256.Int).SubOverflow(
+        p1.Y, p2.Y)
+    if underflow { p1MinusY2.Add(p1MinusY2, modulus) }
+    slope := new(uint256.Int).MulMod(p1MinusY2, inv_x1MinusX2, modulus)
 
     // x = slope ** 2 - x_1 - x_2
     x, underflow := new(uint256.Int).SubOverflow(
             new(uint256.Int).MulMod(slope, slope, modulus),
-        p_1.X)
+        p1.X)
     if underflow { x.Add(x, modulus) }
     x, underflow = new(uint256.Int).SubOverflow(
             x,
-        p_2.X)
+        p2.X)
     if underflow { x.Add(x, modulus) }
 
     // x = slope * (x_1 - x) - y_1
-    x1_minus_x, underflow := new(uint256.Int).SubOverflow(p_1.X, x)
-    if underflow { x1_minus_x.Add(x1_minus_x, modulus) }
-    slope_mul_x1_minus_x := new(uint256.Int).MulMod(
-        slope, x1_minus_x, modulus)
+    x1MinusX, underflow := new(uint256.Int).SubOverflow(p1.X, x)
+    if underflow { x1MinusX.Add(x1MinusX, modulus) }
+    slope_mul_x1MinusX := new(uint256.Int).MulMod(
+        slope, x1MinusX, modulus)
     y, underflow := new(uint256.Int).SubOverflow(
-        slope_mul_x1_minus_x, p_1.Y)
+        slope_mul_x1MinusX, p1.Y)
     if underflow { y.Add(y, modulus) }
 
     return ECPoint {
@@ -211,7 +211,7 @@ func secp256k1_add(p_1, p_2 ECPoint) ECPoint {
 //
 // NOTE This is much faster than simply adding the point `operand` times
 //
-func secp256k1_multiply(operand *uint256.Int, p ECPoint) ECPoint {
+func secp256k1Multiply(operand *uint256.Int, p ECPoint) ECPoint {
     running := ECPoint {
         X: p.X.Clone(),
         Y: p.Y.Clone(),
@@ -242,11 +242,11 @@ func secp256k1_multiply(operand *uint256.Int, p ECPoint) ECPoint {
             }
 
             // Always double (after ignoring the first bit)
-            running = secp256k1_double(running)
+            running = secp256k1Double(running)
 
             if bit > 0 {
                 // Add if this bit is a `1` (again, ignoring the first bit)
-                running = secp256k1_add(running, p)
+                running = secp256k1Add(running, p)
             }
         }
     }
@@ -254,34 +254,34 @@ func secp256k1_multiply(operand *uint256.Int, p ECPoint) ECPoint {
     return running
 }
 
-func secp256k1_verify(pub ECPoint, hash *uint256.Int, signature ECDSignature) bool {
-    p_1 := secp256k1_multiply(
+func secp256k1Verify(pub ECPoint, hash *uint256.Int, signature ECDSignature) bool {
+    p1 := secp256k1Multiply(
         new(uint256.Int).MulMod(
-            mod_inverse_euclid(signature.S, SECP256K1_ORDER),
+            modInverseEuclid(signature.S, secp256k1Order),
             hash,
-            SECP256K1_ORDER),
-        SECP256K1_GENERATOR)
+            secp256k1Order),
+        secp256k1Generator)
 
-    p_2 := secp256k1_multiply(
+    p2 := secp256k1Multiply(
         new(uint256.Int).MulMod(
-            mod_inverse_euclid(signature.S, SECP256K1_ORDER),
+            modInverseEuclid(signature.S, secp256k1Order),
             signature.R,
-            SECP256K1_ORDER),
+            secp256k1Order),
         pub)
 
-    res := secp256k1_add(p_1, p_2)
+    res := secp256k1Add(p1, p2)
     return res.X.Eq(signature.R)
 }
 
-func secp256k1_sign(priv, hash, nonce *uint256.Int) ECDSignature {
-    r := (secp256k1_multiply(nonce, SECP256K1_GENERATOR)).X
+func secp256k1Sign(priv, hash, nonce *uint256.Int) ECDSignature {
+    r := (secp256k1Multiply(nonce, secp256k1Generator)).X
     s := new(uint256.Int).MulMod(
         new(uint256.Int).AddMod(
-            new(uint256.Int).MulMod(priv, r, SECP256K1_ORDER),
+            new(uint256.Int).MulMod(priv, r, secp256k1Order),
             hash,
-            SECP256K1_ORDER),
-        mod_inverse_euclid(nonce, SECP256K1_ORDER),
-        SECP256K1_ORDER)
+            secp256k1Order),
+        modInverseEuclid(nonce, secp256k1Order),
+        secp256k1Order)
 
     return ECDSignature {
         R: r,
@@ -289,28 +289,28 @@ func secp256k1_sign(priv, hash, nonce *uint256.Int) ECDSignature {
     }
 }
 
-func secp256k1_derive_pub(priv *uint256.Int) ECPoint {
-    return secp256k1_multiply(priv, SECP256K1_GENERATOR)
+func secp256k1DerivePub(priv *uint256.Int) ECPoint {
+    return secp256k1Multiply(priv, secp256k1Generator)
 }
 
 //
 // Check if this point is actually on secp256k1
 //
-func secp256k1_on_curve(p ECPoint) bool {
-    x_cube := new(uint256.Int).MulMod(
+func secp256k1OnCurve(p ECPoint) bool {
+    xCube := new(uint256.Int).MulMod(
         new(uint256.Int).MulMod(
             p.X,
             p.X,
-            SECP256K1_PRIME),
+            secp256k1Prime),
         p.X,
-        SECP256K1_PRIME)
-    y_square := new(uint256.Int).MulMod(p.Y, p.Y, SECP256K1_PRIME)
+        secp256k1Prime)
+    ySquare := new(uint256.Int).MulMod(p.Y, p.Y, secp256k1Prime)
 
-    res, underflow := new(uint256.Int).SubOverflow(new(uint256.Int).Add(x_cube, uint256.NewInt(7)),
-        y_square)
-    if underflow { res.Add(res, SECP256K1_PRIME) }
+    res, underflow := new(uint256.Int).SubOverflow(new(uint256.Int).Add(xCube, uint256.NewInt(7)),
+        ySquare)
+    if underflow { res.Add(res, secp256k1Prime) }
 
-    res.Mod(res, SECP256K1_PRIME)
+    res.Mod(res, secp256k1Prime)
     return res.IsZero()
 }
 

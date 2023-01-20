@@ -14,7 +14,7 @@ func Sign(priv, msg []byte, nonce uint64) ECDSignature {
     hash := sha256.Sum256(msg)
     hashInt := new(uint256.Int).SetBytes(hash[:])
 
-    return secp256k1_sign(privInt, hashInt, uint256.NewInt(nonce))
+    return secp256k1Sign(privInt, hashInt, uint256.NewInt(nonce))
 }
 
 //
@@ -24,7 +24,7 @@ func Verify(pub ECPoint, msg []byte, signature ECDSignature) bool {
     hash := sha256.Sum256(msg)
     hashInt := new(uint256.Int).SetBytes(hash[:])
 
-    return secp256k1_verify(pub, hashInt, signature)
+    return secp256k1Verify(pub, hashInt, signature)
 }
 
 //
@@ -32,5 +32,5 @@ func Verify(pub ECPoint, msg []byte, signature ECDSignature) bool {
 //
 func DerivePubKey(privKey []byte) ECPoint {
     priv := new(uint256.Int).SetBytes(privKey[:])
-    return secp256k1_derive_pub(priv)
+    return secp256k1DerivePub(priv)
 }
